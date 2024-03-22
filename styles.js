@@ -18,7 +18,7 @@ export const theme = {
     text: "Noto Serif Thai Condensed, serif",
   },
   fontSizes: {
-    xs: "0.5rem",
+    xs: "0.8rem",
     small: "1rem",
     medium: "1.5rem",
     ml: "1.7rem",
@@ -35,6 +35,7 @@ export const theme = {
   },
   box: {
     shadow: "5px 5px 0 #262524",
+    shadowSmall: "2px 3px 0 #262524",
     hover: "3px 3px 0 #262524",
     height: "4.8rem",
     width: "20rem",
@@ -124,5 +125,42 @@ a {
   text-decoration: none;
 color: ${theme.textColor};
 }
+
+input {
+  border: none;
+  appearance: none; 
+  outline: none;
+}
+
+input:focus,:active {
+  appearance: none; 
+  outline: none;
+  
+}
+
+select {
+
+  outline: none;
+}
+
+
+select:focus,:active {
+   outline: none;
+   appearance: none;
+
+}
+
+textarea {
+  appearance: none; 
+  outline: none;
+}
+
+
+textarea:focus,:active {
+   outline: none;
+   appearance: none;
+
+}
+
 
 `;

@@ -1,7 +1,7 @@
 import DetailsCard from "@/components/DetailsCard";
 import { useAuthentication } from "./api/useAuthentication";
 
-export default function DetailsCardPage() {
+export default function DetailsCardPage({ isEditMode, setIsEditMode }) {
   const { authenticated, loading } = useAuthentication();
 
   if (loading) {
@@ -14,7 +14,7 @@ export default function DetailsCardPage() {
 
   return (
     <>
-      <DetailsCard />
+      <DetailsCard setIsEditMode={setIsEditMode} isEditMode={isEditMode} />
     </>
   );
 }

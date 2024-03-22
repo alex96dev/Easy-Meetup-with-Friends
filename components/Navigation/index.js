@@ -1,16 +1,14 @@
 import { theme } from "@/styles";
 import styled from "styled-components";
 
-export default function Navigation() {
+export default function Navigation({ onCreateClick }) {
   return (
     <StyledNavigation>
       <StyledNavButtonBox>
         <StyledSideButton onClick={() => (window.location.href = "/joined")}>
           XX
         </StyledSideButton>
-        <StyledCenterButton onClick={() => (window.location.href = "/create")}>
-          create
-        </StyledCenterButton>
+        <StyledCenterButton onClick={onCreateClick}>create</StyledCenterButton>
         <StyledSideButton onClick={() => (window.location.href = "/calendar")}>
           <span className="material-symbols-outlined">calendar_month</span>
         </StyledSideButton>

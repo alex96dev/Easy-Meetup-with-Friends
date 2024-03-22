@@ -1,17 +1,19 @@
 import styled from "styled-components";
 import { useRouter } from "next/router";
 import useSWR from "swr";
-import Link from "next/link";
 import CardForm from "../CardForm";
 import { useState, useEffect } from "react";
 import { theme } from "@/styles";
-import PlaceholderLogo from "@/Icons/Placeholder";
+import Logo from "@/Icons/Logo";
 import DeleteIcon from "@/Icons/DeleteIcon";
 import EditIcon from "@/Icons/EditIcon";
+import BackIcon from "@/Icons/BackIcon";
 
-export default function DetailsCard() {
+export default function DetailsCard({ isEditMode, setIsEditMode }) {
   const router = useRouter();
   const { id } = router.query;
+  const endpoint = `/api/activities/${id}`;
+
   const [joinState, setJoinState] = useState({
     isJoined: false,
     joinButtonText: "Join",
@@ -20,13 +22,19 @@ export default function DetailsCard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch(`/api/activities/${id}`);
-        const json = await response.json();
+        if (id) {
+          const response = await fetch(endpoint);
+          if (!response.ok) {
+            console.error("Error fetching activity:", response.statusText);
+            return;
+          }
+          const activityData = await response.json();
 
-        setJoinState((prevState) => ({
-          ...prevState,
-          isJoined: json.joined,
-        }));
+          setJoinState((prevState) => ({
+            ...prevState,
+            isJoined: activityData.joined,
+          }));
+        }
       } catch (error) {
         console.error("Error fetching activity:", error);
       }
@@ -35,31 +43,28 @@ export default function DetailsCard() {
     fetchData();
   }, [id]);
 
-  const {
-    data: activities,
-    isLoading,
-    mutate,
-    error,
-  } = useSWR(`/api/activities/${id}`);
-
-  const [isEditMode, setIsEditMode] = useState(false);
+  const { data: activities, isLoading, mutate, error } = useSWR(endpoint);
 
   if (isLoading) {
     return <h1>Loading...</h1>;
   }
   if (!activities || error) {
-    router.replace("/");
+    return <p>Ups! Something went wrong...</p>;
+  }
+
+  function handleEditClick() {
+    setIsEditMode(true);
   }
 
   async function handleEditActivity(event) {
     event.preventDefault();
-
+    setIsEditMode(true);
     const form = event.target;
     const formData = new FormData(form);
 
     const activityData = Object.fromEntries(formData.entries());
 
-    const response = await fetch(`/api/activities/${id}`, {
+    const response = await fetch(endpoint, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -67,14 +72,14 @@ export default function DetailsCard() {
       body: JSON.stringify(activityData),
     });
     if (response.ok) {
-      mutate();
+      mutate(endpoint);
       setIsEditMode(false);
       event.target.reset();
     }
   }
 
   async function handleDelete() {
-    const response = await fetch(`/api/activities/${id}`, {
+    const response = await fetch(endpoint, {
       method: "DELETE",
     });
     if (response.ok) {
@@ -89,7 +94,7 @@ export default function DetailsCard() {
       isJoined: updatedIsJoined,
     }));
 
-    const response = await fetch(`/api/activities/${id}`, {
+    const response = await fetch(endpoint, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -104,21 +109,17 @@ export default function DetailsCard() {
   return (
     <StyledDetailsCard>
       <StyledHeadlineBox>
-        <StyledPlaceholderLogo />
+        <StyledLogoWrapper>
+          <Logo />
+        </StyledLogoWrapper>
         <StyledAppName> MeetMate</StyledAppName>
       </StyledHeadlineBox>
-      <StyledPageTitle>Join your friend!</StyledPageTitle>
+      <StyledPageDetailTitle>Join your friend!</StyledPageDetailTitle>
       <StyledAcitivityNameBox category={activities.category}>
         <StyledJoinedmark>{joinState.isJoined && <h2>XX</h2>}</StyledJoinedmark>
         <StyledActivityName>{activities.name}</StyledActivityName>
       </StyledAcitivityNameBox>
       <StyledInformationBox>
-        <StyledCloseButton
-          onClick={() => (window.location.href = "/")}
-          category={activities.category}
-        >
-          x
-        </StyledCloseButton>
         <StyledUl>
           <StyledInfoLabel>Author: </StyledInfoLabel>
           <StyledInfo>{activities.author}</StyledInfo>
@@ -138,19 +139,18 @@ export default function DetailsCard() {
         {activities.description !== "" && (
           <StyledDescription>{activities.description}</StyledDescription>
         )}
+        <StyledJoinButton isJoined={joinState.isJoined} onClick={handleJoin}>
+          {joinState.isJoined ? "Disjoin" : "XX Join"}
+        </StyledJoinButton>
         <StyledButtonBox>
-          <StyledEditButton
-            onClick={() => {
-              setIsEditMode(!isEditMode);
-            }}
-          >
+          <StyledButton onClick={() => (window.location.href = "/")}>
+            <BackIcon />
+          </StyledButton>
+          <StyledButton onClick={handleEditClick}>
             {" "}
             {isEditMode ? "Cancel" : <EditIcon />}
-          </StyledEditButton>
-          <StyledJoinButton isJoined={joinState.isJoined} onClick={handleJoin}>
-            {joinState.isJoined ? "Disjoin" : "XX Join"}
-          </StyledJoinButton>
-          <StyledDeleteButton
+          </StyledButton>
+          <StyledButton
             onClick={() => {
               if (
                 window.confirm("Do you really want to delete this activity?")
@@ -160,13 +160,20 @@ export default function DetailsCard() {
             }}
           >
             <DeleteIcon />
-          </StyledDeleteButton>
+          </StyledButton>
         </StyledButtonBox>
         {isEditMode && (
-          <CardForm
-            onSubmit={handleEditActivity}
-            existingActivityData={activities}
-          />
+          <Overlay>
+            <CardForm
+              onCancel={() => setIsEditMode(false)}
+              setIsEditMode={setIsEditMode}
+              isEditMode={true}
+              onSubmit={handleEditActivity}
+              existingActivityData={activities}
+              sourcePage="details"
+              pageTitle="Join your friend!"
+            />
+          </Overlay>
         )}
       </StyledInformationBox>
     </StyledDetailsCard>
@@ -188,11 +195,22 @@ const getCategoryColor = (category, theme) => {
   }
 };
 
+const Overlay = styled.div`
+  position: fixed;
+  margin-top: 0;
+  top: 0;
+  left: 0;
+  padding-bottom: ${theme.spacing.medium};
+  width: 100%;
+  height: 100%;
+  background-color: ${theme.primaryColor};
+  overflow-y: auto;
+`;
+
 const StyledDetailsCard = styled.div`
-  display: flex;
-  flex-direction: column;
   margin: ${theme.spacing.small} auto;
   max-width: ${theme.box.width};
+  padding-bottom: ${theme.spacing.medium};
 `;
 
 const StyledHeadlineBox = styled.div`
@@ -201,23 +219,23 @@ const StyledHeadlineBox = styled.div`
   justify-content: flex-start;
   align-items: center;
   gap: ${theme.spacing.xs};
-  margin-top: ${theme.spacing.small};
 `;
 
-const StyledPlaceholderLogo = styled(PlaceholderLogo)`
-  width: 1.2rem;
-  height: 1.2rem;
+const StyledLogoWrapper = styled.div`
+  width: ${theme.button.xs};
+  height: ${theme.button.xs};
 `;
 
 const StyledAppName = styled.h1`
   font-size: ${theme.fontSizes.small};
   margin: 0;
-  padding-top: 0.1rem;
+  padding-top: 0.3rem;
 `;
 
-const StyledPageTitle = styled.h1`
-  margin: ${theme.spacing.medium} auto;
+const StyledPageDetailTitle = styled.h1`
   font-size: ${theme.fontSizes.ml};
+  text-align: center;
+  margin: ${theme.spacing.small};
 `;
 
 const StyledAcitivityNameBox = styled.div`
@@ -229,6 +247,7 @@ const StyledAcitivityNameBox = styled.div`
   border-radius: ${theme.borderRadius.medium};
   box-shadow: ${theme.box.shadow};
   width: ${theme.box.width};
+  height: ${theme.box.height};
   background-color: ${({ category }) => getCategoryColor(category, theme)};
 `;
 
@@ -242,6 +261,7 @@ const StyledJoinedmark = styled.div`
 
 const StyledActivityName = styled.h2`
   font-size: ${theme.fontSizes.large};
+  margin: auto;
 `;
 
 const StyledInformationBox = styled.section`
@@ -258,36 +278,13 @@ const StyledInformationBox = styled.section`
   padding-top: ${theme.spacing.large};
 `;
 
-const StyledCloseButton = styled.button`
-  display: flex;
-  position: absolute;
-  justify-content: center;
-  align-items: center;
-  font-size: ${theme.fontSizes.small};
-  top: 0.5rem;
-  right: 0.5rem;
-  height: ${theme.button.xs};
-  width: ${theme.button.xs};
-  border-width: ${theme.borderWidth.medium};
-  border-radius: 5px;
-  box-shadow: none;
-  z-index: 99;
-  &:hover,
-  &:active {
-    box-shadow: none;
-    background-color: ${theme.primaryColor};
-    color: ${theme.textColor};
-  }
-  background-color: ${({ category }) => getCategoryColor(category, theme)};
-`;
-
 const StyledUl = styled.ul`
-  margin: auto;
-  padding: 0;
-  width: 80%;
   display: grid;
   grid-template-columns: repeat(2, max-content);
   gap: ${theme.spacing.medium};
+  margin: auto;
+  padding: 0;
+  width: 80%;
 `;
 
 const StyledInfoLabel = styled.li`
@@ -310,30 +307,27 @@ const StyledInfo = styled.li`
 
 const StyledDescription = styled.p`
   font-size: ${theme.fontSizes.small};
-  font-family: ${theme.fonts.heading};
+  font-family: ${theme.fonts.text};
   width: 80%;
-  margin-top: ${theme.spacing.medium};
-  margin-bottom: ${theme.spacing.xl};
+  margin-top: ${theme.spacing.small};
+  margin-bottom: 0;
   letter-spacing: 0.009rem;
   line-height: 1.4;
+`;
+const StyledJoinButton = styled.button`
+  width: ${theme.button.xl};
+  margin-top: ${theme.spacing.medium};
+  background-color: ${(props) =>
+    props.isJoined ? `${theme.alertColor}` : `${theme.confirmColor}`};
 `;
 
 const StyledButtonBox = styled.div`
   display: flex;
   gap: 2rem;
   padding: ${theme.spacing.medium};
+  padding-top: ${theme.spacing.medium};
 `;
 
-const StyledEditButton = styled.button`
-  width: ${theme.button.medium};
-`;
-
-const StyledJoinButton = styled.button`
-  width: ${theme.button.lx};
-  background-color: ${(props) =>
-    props.isJoined ? `${theme.alertColor}` : `${theme.confirmColor}`};
-`;
-
-const StyledDeleteButton = styled.button`
+const StyledButton = styled.button`
   width: ${theme.button.medium};
 `;

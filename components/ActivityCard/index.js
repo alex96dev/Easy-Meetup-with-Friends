@@ -1,12 +1,29 @@
 import { theme } from "@/styles";
 import styled from "styled-components";
+import { useEffect, useRef, useState } from "react";
 
 export default function ActivityCard({ name, date, time, joined, category }) {
+  const activityNameRef = useRef(null);
+
+  useEffect(() => {
+    const activityNameElement = activityNameRef.current;
+    if (!activityNameElement) return;
+
+    const containerWidth = activityNameElement.offsetWidth;
+    const textWidth = activityNameElement.scrollWidth;
+
+    if (textWidth > containerWidth) {
+      activityNameElement.style.whiteSpace = "nowrap";
+    } else {
+      activityNameElement.style.whiteSpace = "normal";
+    }
+  }, [name]);
+
   return (
     <StyledActivityCard category={category}>
       <StyledDivLeft>
         {joined && <StyledJoinMark>XX</StyledJoinMark>}
-        <StyledActivityName>{name}</StyledActivityName>
+        <StyledActivityName ref={activityNameRef}>{name}</StyledActivityName>
       </StyledDivLeft>
       <StyledDivRight>
         <StyledSection>
@@ -32,6 +49,10 @@ const StyledActivityCard = styled.div`
   &:hover {
     box-shadow: ${theme.box.hover};
   }
+  &:active {
+    box-shadow: ${theme.box.hover};
+  }
+
   margin-bottom: ${theme.spacing.medium};
   background-color: ${({ category }) => {
     switch (category) {
@@ -73,7 +94,7 @@ const StyledJoinMark = styled.p`
   @media screen and (min-width: 1200px) {
     font-size: ${theme.fontSizes.small.split("r")[0] * 1.6 + "rem"};
   }
-  left: 0.3rem;
+  left: ${theme.spacing.xs};
   margin-top: 0;
   margin-left: 0;
 `;
@@ -81,8 +102,9 @@ const StyledJoinMark = styled.p`
 const StyledDivLeft = styled.div`
   position: absolute;
   top: 50%;
+  left: ${theme.spacing.xs};
   transform: translateY(-50%);
-  width: 12rem;
+  width: 11rem;
   @media screen and (min-width: 600px) {
     width: 19rem;
   }
@@ -93,7 +115,6 @@ const StyledDivLeft = styled.div`
     width: 24rem;
   }
   align-items: center;
-  left: 0;
 `;
 const StyledDivRight = styled.div`
   position: absolute;
@@ -137,6 +158,7 @@ const StyledPElement = styled.p`
 
 const StyledActivityName = styled.h2`
   text-align: center;
+
   @media screen and (min-width: 600px) {
     font-size: ${theme.fontSizes.medium.split("r")[0] * 1.2 + "rem"};
   }
