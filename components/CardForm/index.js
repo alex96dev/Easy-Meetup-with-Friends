@@ -17,6 +17,7 @@ import { FiCalendar } from "react-icons/fi";
 import TimePicker from "react-time-picker";
 import { FiClock } from "react-icons/fi";
 import handleSubmit from "@/utils/components/CardForm/handleSubmit";
+import getCurrentDate from "@/utils/components/CardForm/getCurrentDate";
 
 export default function CardForm({
   onCancel,
@@ -31,15 +32,19 @@ export default function CardForm({
   const method = existingActivityData ? "PUT" : "POST";
   const { mutate } = useSWR(endpoint);
   const { data: session, status } = useSession();
-  const { setIsEditMode, isEditMode } = useStore();
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [showDayPicker, setShowDayPicker] = useState(false);
-  const [selectedTime, setSelectedTime] = useState(
-    existingActivityData?.time || getCurrentTime()
-  );
-  const [selectedCategory, setSelectedCategory] = useState(
-    existingActivityData?.category || ""
-  );
+  const {
+    setIsEditMode,
+    isEditMode,
+    showDayPicker,
+    setShowDayPicker,
+    selectedTime,
+    setSelectedTime,
+    selectedCategory,
+    setSelectedCategory,
+    selectedDate,
+    setSelectedDate,
+  } = useStore();
+
   const inputRef = useRef(null);
   const textareaRef = useRef(null);
 
@@ -50,22 +55,20 @@ export default function CardForm({
       const { date, category } = existingActivityData;
       setSelectedDate(date ? new Date(date) : null);
       setSelectedCategory(category || "");
+      setSelectedTime(existingActivityData.time || getCurrentTime());
     }
-  }, [existingActivityData]);
-
-  useEffect(() => {
-    handleChange(); // Do we really need another useEffect here?
-  }, []);
+    handleChange();
+  }, [
+    existingActivityData,
+    setSelectedDate,
+    setSelectedCategory,
+    setSelectedTime,
+  ]);
 
   const handleDayClick = (day) => {
     setSelectedDate(day);
     setShowDayPicker(false);
   };
-
-  // const handleInputChange = (event) => {
-  //   const inputValue = event.target.value;
-  //   setSelectedDate(inputValue ? new Date(inputValue) : null);
-  // };
 
   const handleInputChange = (event) => {
     setSelectedDate(new Date(event.target.value));
@@ -74,12 +77,7 @@ export default function CardForm({
   const toggleDayPicker = () => setShowDayPicker((prev) => !prev);
 
   const handleCategoryChange = (event) => {
-    setSelectedCategory((prevCategory) => {
-      const newCategory = event.target.value;
-      if (newCategory) {
-        return newCategory;
-      }
-    });
+    setSelectedCategory(event.target.value);
   };
 
   const handleChange = () => {
@@ -88,21 +86,6 @@ export default function CardForm({
       textarea.style.height = "auto";
       textarea.style.height = `${textarea.scrollHeight}px`;
     }
-  };
-
-  const getCurrentDate = () => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, "0");
-    const day = String(today.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-
-  const getCurrentTime = () => {
-    const today = new Date();
-    const hours = String(today.getHours()).padStart(2, "0");
-    const minutes = String(today.getMinutes()).padStart(2, "0");
-    return `${hours}:${minutes}`;
   };
 
   return (
